@@ -1,4 +1,4 @@
-(defproject montoux/lein-less "1.0.0"
+(defproject montoux/lein-less "1.1.0-SNAPSHOT"
   :description "{less} css builder plugin for leiningen"
   :url "http://github.com/montoux/lein-less"
   :license {:name "Eclipse Public License"
