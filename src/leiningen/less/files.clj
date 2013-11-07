@@ -98,10 +98,10 @@
 
 (defn compilation-units [src-paths target-path]
   (let [src-paths (map as-path src-paths)
-        target-path (as-path target-path)]
+        ^Path target-path (as-path target-path)]
     (->>
-      (for [src-path ^Path src-paths
-            src ^Path (remove private? (filter less? (descendents src-path)))]
+      (for [^Path src-path src-paths
+            ^Path src (remove private? (filter less? (descendents src-path)))]
         (let [dst ^Path (.resolve target-path (.relativize src-path src))
               [_ fname ext] (re-matches #"^(.+)[.]([^.]+)$" (.toString dst))
               dst (.resolve (.getParent dst) (format "%s.%s" fname "css"))]

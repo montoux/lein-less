@@ -5,10 +5,10 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :eval-in-leiningen true
 
-  :repositories [["releases" {:url "https://nexus.montoux.com/content/repositories/releases/"
+  :repositories [["releases" {:url "https://nexus.montoux.com/nexus/content/repositories/releases/"
                               :username [:gpg :env/nexus_username ]
                               :password [:gpg :env/nexus_password ]}]
-                 ["snapshots" {:url "https://nexus.montoux.com/content/repositories/snapshots/"
+                 ["snapshots" {:url "https://nexus.montoux.com/nexus/content/repositories/snapshots/"
                                :username [:gpg :env/nexus_username ]
                                :password [:gpg :env/nexus_password ]}]]
 

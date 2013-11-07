@@ -6,7 +6,7 @@
   (let [^Path root (files/as-path (:root project))
         source-paths (get raw-config :source-paths (get project :resource-paths []))
         target-path (get raw-config :target-path (get project :target-path nil))
-        source-paths (map (comp #(.resolve root %) files/as-path) source-paths)
+        source-paths (map (comp #(.resolve root ^Path %) files/as-path) source-paths)
         ^Path target-path (.resolve root (files/as-path target-path))]
     {:source-paths
       (vec
