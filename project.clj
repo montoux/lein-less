@@ -5,13 +5,6 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :eval-in-leiningen true
 
-  :repositories [["releases" {:url "https://nexus.montoux.com/nexus/content/repositories/releases/"
-                              :username [:gpg :env/nexus_username ]
-                              :password [:gpg :env/nexus_password ]}]
-                 ["snapshots" {:url "https://nexus.montoux.com/nexus/content/repositories/snapshots/"
-                               :username [:gpg :env/nexus_username ]
-                               :password [:gpg :env/nexus_password ]}]]
-
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.lesscss/lesscss "1.3.3"]]
 
