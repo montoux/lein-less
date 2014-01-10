@@ -15,7 +15,7 @@ To continuously compile {less} files whenever a source file changes:
     $ lein less auto
 
 If you want less compilation to happen on regular lein targets (e.g. compile),
-add `leiningen.lesscss` into the `:hooks` vector of your project.clj.
+add `leiningen.less` into the `:hooks` vector of your project.clj.
 
 ## License
 
