@@ -52,11 +52,15 @@
   [project path]
   (.toString (.relativize (as-path (:root project)) (as-path path))))
 
+(defn parent
+  "Given a pathish argument, get its parent. This will fail if the path doesn't specify a parent."
+  ^Path [path]
+  (some-> path as-path .getParent))
+
 (defn directory?
   "Returns true iff the pathish argument specifies a file system entity that is a directory."
   [path]
   (and (some-> path as-path (Files/isDirectory follow-links)) path))
-
 
 (defn exists?
   "Returns true iff the pathish argument specifies a file system entity that exists."
@@ -78,6 +82,16 @@
     (boolean
       (and fname (re-find #"^_" fname)))))
 
+(defn directory?
+  "Returns true iff the pathish argument specifies a file system entity that is a directory."
+  [path]
+  (and (some-> path as-path (Files/isDirectory follow-links)) path))
+
+(defn exists?
+  "Returns true iff the pathish argument specifies a file system entity that exists."
+  [path]
+  (and (some-> path as-path (Files/exists follow-links)) path))
+
 (defn absolute
   "Given a pathish argument, creates an absolute java.nio.file.Path."
   ^Path [pathish]
@@ -87,6 +101,11 @@
   "Resolve a classpath resource to a java.nio.file.Path. Expects a string."
   ^Path [name]
   (as-path (jio/resource name)))
+
+(defn create-directories
+  "Creates the specified path as a directory using java.nio.path.Files/createDirectories."
+  ^Path [dir]
+  (Files/createDirectories (as-path dir) default-attributes))
 
 (defn descendents
   "Returns a list of descendents of the provided pathish root, possibly filtering with a predicate.

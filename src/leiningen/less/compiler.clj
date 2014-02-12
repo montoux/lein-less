@@ -38,22 +38,6 @@
   ([project units rethrow-errors?]
    (doseq [{:keys [^Path src ^Path dst]} units]
      (println (format "  %s => %s" (files/fstr project src) (files/fstr project dst)))
+     (files/create-directories (files/parent dst))
      (compile src dst)))
   )
-
-
-#_ (defn compile [project units rethrow-errors?]
-  (doseq [{:keys [^Path src ^Path dst]} units]
-    (println (format "  %s => %s" (files/fstr project src) (files/fstr project dst)))
-    (try
-      (.compile ^LessCompiler compiler (.toFile src) (.toFile dst))
-      (catch IOException ex
-        (if rethrow-errors?
-          (throw ex)
-          (println (.getMessage ex))))
-      (catch LessException ex
-        (if rethrow-errors?
-          (throw ex)
-          (do (println (.getMessage ex))
-              (println (format "(%s)" (.getMessage (.getCause ex))))))
-        ))))
