@@ -2,18 +2,21 @@
   (:require [clojure.java.io :as jio])
   (:import (java.nio.file FileSystems FileSystem Files FileVisitor Path Paths FileVisitResult
                           WatchService WatchEvent WatchEvent$Kind WatchEvent$Modifier WatchKey
-                          StandardWatchEventKinds)
-           (java.nio.file.attribute BasicFileAttributes)))
+                          StandardWatchEventKinds LinkOption OpenOption SimpleFileVisitor)
+           (java.nio.file.attribute BasicFileAttributes FileAttribute)
+           (java.io Reader File BufferedReader InputStreamReader)
+           (java.nio.charset StandardCharsets)
+           (java.net URL URI)))
 
 ;; Pre-computed arguments for nio interop function calls
 
-(def follow-links (make-array java.nio.file.LinkOption 0))
-(def utf-8 java.nio.charset.StandardCharsets/UTF_8)
-(def default-open-options (make-array java.nio.file.OpenOption 0))
+(def follow-links (make-array LinkOption 0))
+(def utf-8 StandardCharsets/UTF_8)
+(def default-open-options (make-array OpenOption 0))
 (def empty-string-array (make-array String 0))
-(def continue java.nio.file.FileVisitResult/CONTINUE)
-(def skip-tree java.nio.file.FileVisitResult/SKIP_SUBTREE)
-(def default-attributes (make-array java.nio.file.attribute.FileAttribute 0))
+(def continue FileVisitResult/CONTINUE)
+(def skip-tree FileVisitResult/SKIP_SUBTREE)
+(def default-attributes (make-array FileAttribute 0))
 (def watch-opts-cdm
   (into-array WatchEvent$Kind [StandardWatchEventKinds/ENTRY_CREATE
                                StandardWatchEventKinds/ENTRY_DELETE
@@ -22,7 +25,7 @@
 
 (defprotocol PathCoercions
   "Coerce between various 'resource-namish' things. Intended for internal use."
-  (^{:tag Path} as-path [x] "Coerce argument to a path."))
+  (^{:tag java.nio.file.Path} as-path [x] "Coerce argument to a path."))
 
 
 (extend-protocol PathCoercions
@@ -32,14 +35,14 @@
   String
   (as-path [s] (Paths/get ^String s empty-string-array))
 
-  java.io.File
-  (as-path [f] (.toPath ^java.io.File f))
+  File
+  (as-path [^File f] (.toPath f))
 
-  java.net.URL
-  (as-path [u] (as-path (jio/file u)))
+  URL
+  (as-path [^URL u] (Paths/get (.toURI u)))
 
-  java.net.URI
-  (as-path [u] (Paths/get ^java.net.URI u))
+  URI
+  (as-path [^URI u] (Paths/get u))
 
   Path
   (as-path [p] p))
@@ -75,6 +78,16 @@
     (boolean
       (and fname (re-find #"^_" fname)))))
 
+(defn absolute
+  "Given a pathish argument, creates an absolute java.nio.file.Path."
+  ^Path [pathish]
+  (.toAbsolutePath (as-path pathish)))
+
+(defn resource
+  "Resolve a classpath resource to a java.nio.file.Path. Expects a string."
+  ^Path [name]
+  (as-path (jio/resource name)))
+
 (defn descendents
   "Returns a list of descendents of the provided pathish root, possibly filtering with a predicate.
   If the predicate doesn't match a particular resource, none of its descendents will be included.
@@ -85,7 +98,7 @@
      (let [paths (atom [])]
        (Files/walkFileTree
          (as-path root)
-         (proxy [java.nio.file.SimpleFileVisitor] []
+         (proxy [SimpleFileVisitor] []
            (visitFile [file attrs]
              (if (predicate file)
                (do (swap! paths conj file) continue)
