@@ -1,25 +1,35 @@
 # lein-less
 
-A Leiningen plugin that compiles {less} css files (see http://lesscss.org).
+A Leiningen plugin that compiles Less css files (see [lesscss.org](http://lesscss.org)) using the `less.js` compiler.
 
 ## Usage
 
-Put `[lein-less "0.1.0-SNAPSHOT"]` into the `:plugins` vector of your project.clj.
+Add `[lein-less "1.6.3"]` to the `:plugins` vector of your `project.clj` file.
 
-Add a `:less` map to your project.clj specifying `:source-paths` and `:target-path`.
+`lein-less` will compile `.less` files found in your Add a `:less` map to your `project.clj` file, specifying `:source-paths` and `:target-path`:
 
-To compile {less} files once:
-    $ lein less once
+```
+  :less {:source-paths ["src/main/less"]
+         :target-path "target/public/css"}
+```
 
-To continuously compile {less} files whenever a source file changes:
-    $ lein less auto
+To compile `.less` files once:
+
+```
+lein less once
+```
+
+To continuously compile `.less` files whenever a file changes:
+
+```
+lein less auto
+```
 
 If you want less compilation to happen on regular lein targets (e.g. compile),
-add `leiningen.less` into the `:hooks` vector of your project.clj.
+add `leiningen.less` into the `:hooks` vector of your `project.clj` file.
 
 ## License
 
 Copyright © 2013 Montoux Ltd.
 
-Distributed under the Eclipse Public License either version 1.0 or (at your option) any later
-version.
+Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version.

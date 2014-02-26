@@ -1,4 +1,4 @@
-(defproject montoux/lein-less "1.6.3"
+(defproject lein-less "1.6.3"
   :description "{less} css builder plugin for leiningen"
   :url "http://github.com/montoux/lein-less"
   :license {:name "Eclipse Public License"
@@ -8,5 +8,5 @@
                  [org.mozilla/rhino "1.7R4"]]
 
   :eval-in-leiningen true
-  :min-lein-version "2.0.0"
+  :min-lein-version "2.2.0"
   )
