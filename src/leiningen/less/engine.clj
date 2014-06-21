@@ -1,27 +1,80 @@
 (ns leiningen.less.engine
   (:require [clojure.java.io :as jio])
-  (:import (javax.script ScriptEngineManager ScriptEngine ScriptContext Bindings)
+  (:import (javax.script ScriptEngineManager ScriptEngine ScriptContext Bindings ScriptException)
            (java.nio.file Path)
-           (java.io File Reader)))
+           (java.io File Reader)
+           (leiningen.less LessError)
+           (java.util Map)))
 
 
-(def ^ScriptEngine default-engine (.getEngineByName (ScriptEngineManager.) "javascript"))
+(def ^:private ^ScriptEngineManager engine-manager (ScriptEngineManager.))
+
+
+(def ^:dynamic ^:private ^ScriptEngine *engine* nil)
+
+
+(defn create-engine
+  "Create a new script engine for the specified name. E.g. rhino, nashorn."
+  ([] (create-engine "javascript"))
+  ([^String engine-type]
+   (.getEngineByName engine-manager engine-type)))
+
+
+(defn with-engine* [engine-param body-fn]
+  (let [engine (if (string? engine-param) (create-engine engine-param) engine-param)]
+    (when-not (instance? ScriptEngine engine)
+      (throw (IllegalArgumentException. (str "Invalid javascript engine (" engine-param ")"))))
+    (binding [*engine* engine]
+      (body-fn))))
+
+(defmacro with-engine
+  "Run the specified body expressions on the provided javascript engine."
+  [engine & body]
+  `(with-engine* ~engine (fn [] ~@body)))
+
+
+(defmacro ^:private check-engine []
+  `(when-not *engine*
+     (throw (IllegalStateException. "eval! must be called from within a `(with-engine ..)` expression."))))
+
+
+(defn throwable? [e]
+  (when (instance? Throwable e)
+    e))
+
+
+(defn error! [error message]
+  (let [cause (when (throwable? error) (.getCause ^Throwable error))]
+    (cond
+      (instance? LessError error)
+      (throw error)
+
+      (and (instance? ScriptException error) cause)
+      (recur cause message)
+
+      (and (instance? RuntimeException error) cause)
+      (recur cause message)
+
+      :default
+      (throw (LessError. (str message) (throwable? error)))
+      )))
 
 
 (defn eval!
-  "Evaluate a resource in the provided (or default) javascript engine. Returns the result.
-  Engine will be modified as a sideeffect."
-  ([resource]
-   (eval! default-engine resource))
-  ([^ScriptEngine engine resource]
-   (if (string? resource)
-     (.eval engine ^String resource)
-     (eval! engine resource (str resource))))
-  ([^ScriptEngine engine ^Reader reader resource-name]
-   (let [^Bindings bindings (.getBindings engine ScriptContext/ENGINE_SCOPE)]
+  "Evaluate the specified string or resource. Must be called from within a `(with-engine ..)` expression."
+  ([^String js-expression]
+   (check-engine)
+   (try
+     (.eval *engine* js-expression)
+     (catch Exception ex
+            (error! ex (.getMessage ex)))))
+  ([resource ^String resource-name]
+   (check-engine)
+   (let [^Reader reader (jio/reader resource)
+         ^Bindings bindings (.getBindings *engine* ScriptContext/ENGINE_SCOPE)]
      (try
        (when resource-name (.put bindings ScriptEngine/FILENAME (str resource-name)))
-       (.eval engine reader)
-       (finally
-         (.remove bindings ScriptEngine/FILENAME)
-         )))))
+       (.eval *engine* reader)
+       (catch Exception ex
+              (error! ex (.getMessage ex)))
+       (finally (.remove bindings ScriptEngine/FILENAME))))))

@@ -1,17 +1,20 @@
 # lein-less
 
-A Leiningen plugin that compiles Less css files (see [lesscss.org](http://lesscss.org)) using the `less.js` compiler.
+This is a Leiningen plugin that will compile Less CSS files (see [lesscss.org](http://lesscss.org)) using the `less.js` compiler running on the JVM. `lein-less` is ideal for compiling Less CSS files during automated builds: compilation happens as part of your regular leiningen build without requiring any tools or configuration other than your leiningen project file.
+
+## Requirements
+
+This plugin is only tested against recent versions of leiningen and clojure. Works with Java 7 or Java 8.
 
 ## Usage
 
-Add `[lein-less "1.6.3"]` to the `:plugins` vector of your `project.clj` file.
-
-`lein-less` will compile `.less` files found in your Add a `:less` map to your `project.clj` file, specifying `:source-paths` and `:target-path`:
+To install the plugin, add `[lein-less "1.7.2"]` to your `project.clj` file:
 
 ```
-  :less {:source-paths ["src/main/less"]
-         :target-path "target/public/css"}
+  :plugins [[lein-less "1.7.2"]]
 ```
+
+The plugin will compile `.less` files found in your leiningen project's resource directories.
 
 To compile `.less` files once:
 
@@ -25,8 +28,21 @@ To continuously compile `.less` files whenever a file changes:
 lein less auto
 ```
 
+## Configuration
+
+You can configure different behaviour by adding a `:less` map to your leiningen project:
+
+```
+  :less {:source-paths ["src/main/less"]
+         :target-path "target/public/css"}
+```
+
 If you want less compilation to happen on regular lein targets (e.g. compile),
-add `leiningen.less` into the `:hooks` vector of your `project.clj` file.
+add `leiningen.less` to your leiningen project file's hooks:
+
+```
+  :hooks [leiningen.less]
+```
 
 ## License
 

@@ -1,4 +1,5 @@
-(ns leiningen.less.files
+(ns leiningen.less.nio
+  (:refer-clojure :exclude [resolve])
   (:require [clojure.java.io :as jio])
   (:import (java.nio.file FileSystems FileSystem Files FileVisitor Path Paths FileVisitResult
                           WatchService WatchEvent WatchEvent$Kind WatchEvent$Modifier WatchKey
@@ -25,7 +26,7 @@
 
 (defprotocol PathCoercions
   "Coerce between various 'resource-namish' things. Intended for internal use."
-  (^{:tag java.nio.file.Path} as-path [x] "Coerce argument to a path."))
+  (^{:tag Path} as-path [x] "Coerce argument to a path."))
 
 
 (extend-protocol PathCoercions
@@ -47,10 +48,29 @@
   Path
   (as-path [p] p))
 
+(extend-protocol jio/Coercions
+  Path
+  (as-file [^Path p] (.toFile p))
+  (as-url [^Path p] (.toURL p)))
+
+(extend Path
+  jio/IOFactory
+  (assoc jio/default-streams-impl
+    :make-input-stream (fn [^Path p _] (Files/newInputStream p default-open-options))
+    :make-output-stream (fn [^Path p opts] (Files/newOutputStream p default-open-options))))
+
 (defn fstr
   "Returns a string representing the file, relative to the project root."
   [project path]
   (.toString (.relativize (as-path (:root project)) (as-path path))))
+
+(defn resolve
+  "Resolve the pathish argument relative the the first."
+  ^Path [context to-resolve]
+  (when-let [context ^Path (as-path context)]
+    (if-let [rel ^Path (as-path to-resolve)]
+      (.resolve context rel)
+      (throw (IllegalArgumentException. (str "Cannot resolve " to-resolve))))))
 
 (defn parent
   "Given a pathish argument, get its parent. This will fail if the path doesn't specify a parent."
@@ -106,6 +126,27 @@
   "Creates the specified path as a directory using java.nio.path.Files/createDirectories."
   ^Path [dir]
   (Files/createDirectories (as-path dir) default-attributes))
+
+(defn create-temp-directory
+  "Creates a new temporary directory with the specified prefix name in the OS-specified temporary file-system location."
+  ^Path [^String prefix]
+  (Files/createTempDirectory prefix default-attributes))
+
+(defn- remove-recursive [^Path to-remove]
+  (let [removed (atom nil)]
+    (Files/walkFileTree to-remove
+                        (proxy [SimpleFileVisitor] []
+                          (visitFile [file attrs] (Files/delete file) (swap! removed conj file) continue)
+                          (visitFileFailed [file exc] (Files/delete file) (swap! removed conj file) continue)
+                          (postVisitDirectory [dir exc] (Files/delete dir) (swap! removed conj dir) continue)))
+    (set @removed)))
+
+(defn delete-recursively
+  "Recursively delete all files rooted at the specified path. Returns a set of the deleted paths."
+  [root]
+  (let [root (as-path root)]
+    (when (exists? root)
+      (remove-recursive (as-path root)))))
 
 (defn descendents
   "Returns a list of descendents of the provided pathish root, possibly filtering with a predicate.

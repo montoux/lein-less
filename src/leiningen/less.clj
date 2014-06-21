@@ -1,22 +1,35 @@
 (ns leiningen.less
-  (:refer-clojure :exclude [compile])
   (:require (leiningen compile help)
             (leiningen.core.main)
             (leiningen.less
-              [compiler :refer [compile]]
+              [compiler :as compiler]
               [config :refer [config]]
-              [files :as files])
-            [robert.hooke :as hooke]))
+              [nio :as nio])
+            [robert.hooke :as hooke]
+            [leiningen.less.engine :as engine])
+  (:import (leiningen.less LessError)))
+
+
+(defn- report-error [^LessError error]
+  (binding [*out* *err*]
+    (println (.getMessage error))))
+
+(defn- abort-on-error [^LessError error]
+  (leiningen.core.main/abort (.getMessage error)))
 
 (defn- run-compiler
   "Run the lesscss compiler."
   [project {:keys [source-paths target-path] :as config} watch?]
-  (println "Compiling {less} css:")
-  (let [units (files/compilation-units source-paths target-path)]
-    (if watch?
-      (files/watch-resources project source-paths (partial compile project units false))
-      (compile project units true))
-    (println "Done.")))
+  (engine/with-engine "javascript"
+    (compiler/initialise)
+    (println "Compiling {less} css:")
+    (let [units (nio/compilation-units source-paths target-path)
+          on-error (if watch? report-error abort-on-error)
+          compile (partial compiler/compile-project project units on-error)]
+      (if watch?
+        (nio/watch-resources project source-paths compile)
+        (compile))
+      (println "Done."))))
 
 (defn- once
   "Compile less files once."

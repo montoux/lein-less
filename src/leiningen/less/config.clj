@@ -1,22 +1,17 @@
 (ns leiningen.less.config
-  (:require [leiningen.less.files :as files])
+  (:require [leiningen.less.nio :as nio])
   (:import [java.nio.file Path]))
 
 (defn- normalise [project raw-config]
-  (let [^Path root (files/as-path (:root project))
-        source-paths (get raw-config :source-paths (get project :resource-paths []))
-        target-path (get raw-config :target-path (get project :target-path nil))
-        source-paths (map (comp #(.resolve root ^Path %) files/as-path) source-paths)
-        ^Path target-path (.resolve root (files/as-path target-path))]
-    {:source-paths
-      (vec
-        (for [^Path source-path source-paths]
-          (if-not (and (files/directory? source-path) (files/exists? source-path))
-            (throw (IllegalArgumentException. (format "Invalid source path: %s" source-path)))
-            (.toAbsolutePath source-path))))
-     :target-path
-      (.toAbsolutePath target-path)
-     }))
+  (let [^Path root (nio/as-path (:root project))]
+    (assert (nio/exists? root))
+    {:source-paths (->> (get raw-config :source-paths (get project :resource-paths))
+                        (map (partial nio/resolve root))
+                        (map nio/absolute)
+                        (filter nio/exists?) vec)
+     :target-path (->> (get raw-config :target-path (get project :target-path nil))
+                       (nio/resolve root)
+                       (nio/absolute))}))
 
 (defn config [project]
   (when (nil? (:less project))

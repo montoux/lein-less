@@ -1,43 +1,39 @@
 (ns leiningen.less.compiler
   (:refer-clojure :exclude [compile])
-  (:require (leiningen.less [files :as files]
+  (:require (leiningen.less [nio :as nio]
                             [engine :as engine])
             [clojure.java.io :as io])
   (:import [java.nio.file Path]
            (java.io IOException)
-           (javax.script ScriptEngineManager ScriptEngine ScriptContext)))
+           (javax.script ScriptEngineManager ScriptEngine ScriptContext)
+           (leiningen.less LessError)))
 
 
-(def version "1.6.3")
-(def utils (format "leiningen/less/utils.js"))
+(def version "1.7.2")
 (def less-js (format "leiningen/less/less-rhino-%s.js" version))
-(def lessc-js (format "leiningen/less/lessc-rhino-%s.js" version))
+(def lessc-js (format "leiningen/less/lessc.js"))
 
-(defprotocol JSReader
-  (^String readFile [^String filename ^String charset]))
 
-(deftype JSIO []
-  JSReader
-  (readFile [filename charset]
-    (slurp filename)))
+(defn initialise
+  "Load less compiler resources required to compile less files to css. Must be called before invoking compile."
+  []
+  (engine/eval! (io/resource less-js) less-js)
+  (engine/eval! (io/resource lessc-js) lessc-js))
 
-(def engine
-  (delay
-    (doto engine/default-engine
-      (engine/eval! (io/reader (io/resource less-js)) less-js)
-      (engine/eval! (io/reader (io/resource utils)) utils)
-      (.put "leiningen_less_io" (JSIO.))
-      )))
 
-(defn compile
-  ([^Path src ^Path dst]
-   (let [engine @engine]
-     (engine/eval! engine (format "var arguments = ['%s', '%s'];" (files/absolute src) (files/absolute dst)))
-     (engine/eval! engine (io/reader (io/resource lessc-js)) lessc-js)
-     ))
-  ([project units rethrow-errors?]
-   (doseq [{:keys [^Path src ^Path dst]} units]
-     (println (format "  %s => %s" (files/fstr project src) (files/fstr project dst)))
-     (files/create-directories (files/parent dst))
-     (compile src dst)))
-  )
+(defn compile-resource
+  "Compile a single less resource."
+  [src dst]
+  (nio/create-directories (nio/parent dst))
+  (engine/eval! (format "lessc.compile('%s', '%s');" (nio/absolute src) (nio/absolute dst))))
+
+
+(defn compile-project
+  "Take a normalised project configuration and a sequence of src/dst pairs, compiles each pair."
+  [project units on-error]
+  (doseq [{:keys [^Path src ^Path dst]} units]
+    (println (format "%s => %s" (nio/fstr project src) (nio/fstr project dst)))
+    (try
+      (compile-resource src dst)
+      (catch LessError ex
+             (on-error ex)))))
