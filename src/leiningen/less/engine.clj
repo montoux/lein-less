@@ -43,20 +43,46 @@
     e))
 
 
-(defn error! [error message]
+(def ^:private get-class
+  (memoize (fn [class-name]
+             (try (Class/forName class-name)
+                  (catch ClassNotFoundException _ nil)))))
+
+
+(defmacro dynamic-instance?
+  "Given a class name, attempts a dynamic lookup of the class, and if found does an instance? test against the object."
+  [class-name obj]
+  `(some-> (get-class ~class-name) (instance? ~obj)))
+
+
+(defn error!
+  "Conservative error handling for JS eval function:
+    * handles error structures passed directly to this function from JS and throws as LessExceptions
+    * handles unwrapping Java exceptions that have been wrapped by the JS VM
+   Uses dynamic class resolution to avoid explicit dependencies JVM-internal classes.
+   "
+  [error message]
   (let [cause (when (throwable? error) (.getCause ^Throwable error))]
     (cond
+      (not (throwable? error))
+      (throw (LessError. (str message) nil))
+
       (instance? LessError error)
       (throw error)
 
-      (and (instance? ScriptException error) cause)
-      (recur cause message)
+      (instance? ScriptException error)
+      (if cause (recur cause message)
+                (throw (LessError. (str message) error)))
 
-      (and (instance? RuntimeException error) cause)
-      (recur cause message)
+      (or (dynamic-instance? "jdk.nashorn.api.scripting.NashornException" error)
+          (dynamic-instance? "sun.org.mozilla.javascript.internal.JavaScriptException" error))
+      (throw (LessError. (str message) error))
 
-      :default
-      (throw (LessError. (str message) (throwable? error)))
+      (or (dynamic-instance? "org.mozilla.javascript.WrappedException" error)
+          (dynamic-instance? "sun.org.mozilla.javascript.internal.WrappedException" error))
+      (recur (.getWrappedException error) message)
+
+      :default (throw error)
       )))
 
 
