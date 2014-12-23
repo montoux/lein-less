@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [compile])
   (:require (leiningen.less [nio :as nio]
                             [engine :as engine])
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [clojure.string :as string])
   (:import [java.nio.file Path]
            (java.io IOException)
            (javax.script ScriptEngineManager ScriptEngine ScriptContext)
@@ -20,12 +21,17 @@
   (engine/eval! (io/resource less-js) less-js)
   (engine/eval! (io/resource lessc-js) lessc-js))
 
+(defn escape-string
+  [s]
+  (-> s str (string/replace #"\\" "\\\\\\\\")))
 
 (defn compile-resource
   "Compile a single less resource."
   [src dst]
   (nio/create-directories (nio/parent dst))
-  (engine/eval! (format "lessc.compile('%s', '%s');" (nio/absolute src) (nio/absolute dst))))
+  (engine/eval! (format "lessc.compile('%s', '%s');"
+                        (escape-string (nio/absolute src))
+                        (escape-string (nio/absolute dst)))))
 
 
 (defn compile-project
