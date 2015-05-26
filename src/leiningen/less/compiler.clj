@@ -10,7 +10,7 @@
            (leiningen.less LessError)))
 
 
-(def version "1.7.2")
+(def version "1.7.5")
 (def less-js (format "leiningen/less/less-rhino-%s.js" version))
 (def lessc-js (format "leiningen/less/lessc.js"))
 

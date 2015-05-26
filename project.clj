@@ -1,4 +1,4 @@
-(defproject lein-less "1.7.4-SNAPSHOT"
+(defproject lein-less "1.7.5-SNAPSHOT"
   :description "Less CSS compiler plugin for leiningen"
   :url "http://github.com/montoux/lein-less"
   :license {:name "Eclipse Public License"
@@ -10,6 +10,6 @@
   :eval-in :leiningen
   :min-lein-version "2.3.0"
 
-  :profiles {:dev {:dependencies [[org.clojure/clojure "1.5.1" :optional true]
-                                  [leiningen-core "2.3.4" :optional true]]}}
+  :profiles {:dev {:dependencies [[org.clojure/clojure "1.6.0" :optional true]
+                                  [leiningen-core "2.5.1" :optional true]]}}
   )
