@@ -7,7 +7,8 @@
            (java.nio.file.attribute BasicFileAttributes FileAttribute)
            (java.io Reader File BufferedReader InputStreamReader)
            (java.nio.charset StandardCharsets)
-           (java.net URL URI)))
+           (java.net URL URI)
+           (com.sun.nio.file SensitivityWatchEventModifier)))
 
 ;; Pre-computed arguments for nio interop function calls
 
@@ -22,6 +23,8 @@
   (into-array WatchEvent$Kind [StandardWatchEventKinds/ENTRY_CREATE
                                StandardWatchEventKinds/ENTRY_DELETE
                                StandardWatchEventKinds/ENTRY_MODIFY]))
+(def watch-modifiers
+  (into-array WatchEvent$Modifier [SensitivityWatchEventModifier/HIGH]))
 
 
 (defprotocol PathCoercions
@@ -188,7 +191,7 @@
     (doseq [path paths
             child (descendents directory? path)]
       (println (format "  %s" (fstr project child)))
-      (.register ^Path child watcher watch-opts-cdm))
+      (.register ^Path child watcher watch-opts-cdm watch-modifiers))
     (println "Watching for changes...")
     (callback)
     (try
