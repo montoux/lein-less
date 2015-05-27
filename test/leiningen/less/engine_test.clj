@@ -51,6 +51,10 @@
     ))
 
 
+(defmacro tests []
+  `(vals (ns-interns ~*ns*)))
+
+
 (defn test-ns-hook
   "Filter tests based on the type of JVM used to run the tests."
   []
@@ -58,7 +62,7 @@
         [_ M m] (clojure.string/split jvm #"\.")
         rhino? (#{"5" "6" "7"} M)
         nashorn? (#{"8" "9"} M)
-        tests (filter (comp :test meta) (vals (ns-interns *ns*)))
+        tests (filter (comp :test meta) (tests))
         tests (concat
                 (remove (comp :rhino meta) (remove (comp :nashorn meta) tests))
                 (when rhino? (filter (comp :rhino meta) tests))
