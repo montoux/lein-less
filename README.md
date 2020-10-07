@@ -1,4 +1,6 @@
-# This project is no longer maintained - please refer to the issue: [Archiving the project](https://github.com/montoux/lein-less/issues/22)
+# This project is no longer maintained  - please refer to the issue: [Archiving the project](https://github.com/montoux/lein-less/issues/22). 
+
+# Any usage should move to using the fork [HERE](https://github.com/brsyuksel/lein-less)
 
 # lein-less
 
